@@ -1,7 +1,6 @@
 
-build/
-.gradle/
-remappedSrc/
-run/
-build/
-.idea/
+build
+.gradle
+remappedSrc
+.idea
+run
