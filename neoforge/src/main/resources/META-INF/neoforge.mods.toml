@@ -1,0 +1,35 @@
+modLoader = "javafml"
+loaderVersion = "[1,)"
+#issueTrackerURL = "A valid URL to your issue tracker where people can open bug tickets"
+license = "MIT License"
+
+[[mods]]
+modId = "playerxp"
+version = "${version}"
+displayName = "PlayerXP"
+authors = "chadlymasterson"
+description = '''
+Earn player xp for all your enchanting needs when winning those battles!
+'''
+#logoFile = ""
+
+[[dependencies.playerxp]]
+modId = "minecraft"
+mandatory = true
+versionRange = "[1.21.1]"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.playerxp]]
+modId = "neoforge"
+mandatory = true
+versionRange = "[21.1.66,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.playerxp]]
+modId = "cobblemon"
+mandatory = true
+versionRange = "[1.6,)"
+ordering = "AFTER"
+side = "BOTH"

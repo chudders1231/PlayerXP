@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "playerxp",
+  "version": "${version}",
+  "name": "PlayerXP",
+  "description": "Earn player xp for all your enchanting needs when winning those battles!",
+  "authors": [
+    "chadlymasterson"
+  ],
+  "license": "MIT License",
+  "icon": "assets/playerxp/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "chadlymasterson.playerxp.PlayerXp"
+    ]
+  },
+  "depends": {
+    "minecraft": "1.21.1",
+    "cobblemon": ">=1.6.0"
+  }
+}
