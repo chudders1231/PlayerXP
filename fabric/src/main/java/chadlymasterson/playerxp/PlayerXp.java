@@ -14,6 +14,7 @@ import com.cobblemon.mod.common.battles.pokemon.BattlePokemon;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.ambient.Bat;
 import net.minecraft.world.entity.player.Player;
@@ -33,9 +34,7 @@ public class PlayerXp implements ModInitializer {
     }
 
     private void onServerStartTick(MinecraftServer minecraftServer) {
-        config = new Config("playerxp.json");
-
-        config.load();
+        config = getConfig();
     }
 
 
@@ -73,5 +72,14 @@ public class PlayerXp implements ModInitializer {
             var levels = config.baseLevels * level;
             player.giveExperienceLevels(levels);
         }
+    }
+
+    public static Config getConfig() {
+        if (config == null) {
+            config = new Config("playerxp.json");
+            config.load();
+        }
+
+        return config;
     }
 }
