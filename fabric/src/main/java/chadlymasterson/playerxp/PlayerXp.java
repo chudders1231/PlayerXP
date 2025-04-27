@@ -1,6 +1,5 @@
 package chadlymasterson.playerxp;
 
-import chadlymasterson.playerxp.common.*;
 import com.cobblemon.mod.common.api.Priority;
 import com.cobblemon.mod.common.api.battles.model.actor.BattleActor;
 import com.cobblemon.mod.common.api.events.CobblemonEvents;
