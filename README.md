@@ -25,7 +25,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/chudders1231/PlayerXP/">
-    <img src="https://cdn.modrinth.com/data/qpe01spE/7aa6cfd294ab0004d2fd7cbe7878ba54025961b9.png" alt="Logo" width="80" height="80">
+    <img src="https://cdn.modrinth.com/data/zlrbPCvu/19ba3a4aefa5fb1610fd27c2c52b518c842f9fad_96.webp" alt="Logo" width="80" height="80">
   </a>
 
   <h3 align="center">Cobblemon: PlayerXP</h3>
