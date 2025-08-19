@@ -17,7 +17,7 @@ public class Config {
 
     // Give levels instead of experience
     private boolean shouldGiveLevels = false;
-    private float baseXP = 5;
+    private float baseXP = 5.0f;
     private int baseLevels = 1;
 
     public static final Gson GSON = new GsonBuilder()
