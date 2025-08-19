@@ -3,8 +3,6 @@ package chadlymasterson.playerxp;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.player.Player;
 
 import java.io.File;
 import java.io.FileReader;
@@ -15,12 +13,12 @@ import java.nio.file.Path;
 public class Config {
 
     public static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir();
-    private static File CONFIG_FILE;
+    private final File CONFIG_FILE;
 
     // Give levels instead of experience
-    public boolean shouldGiveLevels = false;
-    public int baseXP = 5;
-    public int baseLevels = 1;
+    private boolean shouldGiveLevels = false;
+    private float baseXP = 5;
+    private int baseLevels = 1;
 
     public static final Gson GSON = new GsonBuilder()
             .setPrettyPrinting()
@@ -29,7 +27,7 @@ public class Config {
             .create();
 
     public Config(String filename) {
-        this.CONFIG_FILE = new File(String.valueOf(CONFIG_PATH) + "/playerxp", filename);
+        CONFIG_FILE = new File(String.valueOf(CONFIG_PATH) + "/playerxp", filename);
 
         load();
     }
@@ -59,5 +57,15 @@ public class Config {
         } catch (IOException e) {
             PlayerXp.LOGGER.error("Failed to save config: " + e.getMessage());
         }
+    }
+
+    public int getBaseLevels() {
+        return this.baseLevels;
+    }
+    public float getBaseXP() {
+        return this.baseXP;
+    }
+    public boolean shouldGiveLevels() {
+        return this.shouldGiveLevels;
     }
 }

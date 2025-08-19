@@ -17,6 +17,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.ambient.Bat;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.enchantment.MendingEnchantment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,11 +65,13 @@ public class PlayerXp implements ModInitializer {
     });
 
     private void handleXP(ServerPlayer player, int level) {
-        if (!config.shouldGiveLevels) {
-            var xp = config.baseXP * level;
+        if (!config.shouldGiveLevels()) {
+            int xp = config.getBaseXP() * level < 1 ? 1 : (int)Math.floor(config.getBaseXP() * level);
+
             player.giveExperiencePoints(xp);
-        } else if(config.shouldGiveLevels) {
-            var levels = config.baseLevels * level;
+        } else {
+            int levels = config.getBaseLevels() * level;
+
             player.giveExperienceLevels(levels);
         }
     }
