@@ -61,11 +61,12 @@ public class PlayerXp {
     });
 
     private void handleXP(ServerPlayer player, int level) {
-        if (!config.shouldGiveLevels) {
-            var xp = config.baseXP * level;
+        if (!config.shouldGiveLevels()) {
+            int xp = config.getBaseXP() * level < 1 ? 1 : (int)Math.floor(config.getBaseXP() * level);
+
             player.giveExperiencePoints(xp);
-        } else if(config.shouldGiveLevels) {
-            var levels = config.baseLevels * level;
+        } else {
+            int levels = config.getBaseLevels() * level;
             player.giveExperienceLevels(levels);
         }
     }

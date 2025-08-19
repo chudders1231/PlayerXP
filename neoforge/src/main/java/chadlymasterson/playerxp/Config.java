@@ -17,9 +17,9 @@ public class Config {
     private static File CONFIG_FILE;
 
     // Give levels instead of experience
-    public boolean shouldGiveLevels = false;
-    public int baseXP = 5;
-    public int baseLevels = 1;
+    private boolean shouldGiveLevels = false;
+    private float baseXP = 5;
+    private int baseLevels = 1;
 
     public static final Gson GSON = new GsonBuilder()
             .setPrettyPrinting()
@@ -28,7 +28,7 @@ public class Config {
             .create();
 
     public Config(String filename) {
-        this.CONFIG_FILE = new File(String.valueOf(CONFIG_PATH) + "/playerxp", filename);
+        CONFIG_FILE = new File(String.valueOf(CONFIG_PATH) + "/playerxp", filename);
 
         load();
     }
@@ -59,4 +59,12 @@ public class Config {
             PlayerXp.LOGGER.error("Failed to save config: " + e.getMessage());
         }
     }
+
+    public int getBaseLevels() {
+        return this.baseLevels;
+    }
+    public float getBaseXP() {
+        return this.baseXP;
+    }
+    public boolean shouldGiveLevels() {return this.shouldGiveLevels;}
 }
