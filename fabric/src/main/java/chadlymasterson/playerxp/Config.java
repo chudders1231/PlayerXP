@@ -13,7 +13,7 @@ import java.nio.file.Path;
 public class Config {
 
     public static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir();
-    private final File CONFIG_FILE;
+    public static File CONFIG_FILE;
 
     // Give levels instead of experience
     private boolean shouldGiveLevels = false;
