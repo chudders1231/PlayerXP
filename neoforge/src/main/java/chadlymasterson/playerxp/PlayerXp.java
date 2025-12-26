@@ -33,7 +33,7 @@ public class PlayerXp {
     }
 
     @SubscribeEvent
-    public static void onServerStarted(ServerStartedEvent event) {
+    public void onServerStarted(ServerStartedEvent event) {
         config = getConfig();
     }
 
