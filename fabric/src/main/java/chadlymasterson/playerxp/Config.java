@@ -11,21 +11,20 @@ import java.io.IOException;
 import java.nio.file.Path;
 
 public class Config {
+    public static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().setLenient().create();
+    public static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir(); // Path to config file
+    private static File CONFIG_FILE; // Config file instance
 
-    public static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir();
-    private static File CONFIG_FILE;
 
-    // Give levels instead of experience
-    private boolean shouldGiveLevels = false;
-    private float baseXP = 5.0f;
-    private int baseLevels = 1;
+    private Boolean shouldGiveLevels = false; // False = xp / True = levels
+    private Float baseXP = 5.0f; // How much xp to give
+    private Integer baseLevels = 1; // How many levels to give
+    private Boolean enableDailyCap = false; // Cap levels to in-game days (disabled by default)
+    private Integer dailyXpCap = 1000; // How much xp can you earn daily?
+    private Integer dailyLevelCap = 10; // How many levels can you earn daily?
+    private Boolean xpFromPlayerBattles = true; // Should players get xp from player battles (enabled by default)?
 
-    public static final Gson GSON = new GsonBuilder()
-            .setPrettyPrinting()
-            .disableHtmlEscaping()
-            .setLenient()
-            .create();
-
+    // Config class instance
     public Config(String filename) {
         CONFIG_FILE = new File(String.valueOf(CONFIG_PATH) + "/playerxp", filename);
 
@@ -41,9 +40,16 @@ public class Config {
         try(FileReader reader = new FileReader(CONFIG_FILE)) {
             Config loaded = GSON.fromJson(reader, Config.class);
 
-            this.shouldGiveLevels = loaded.shouldGiveLevels;
-            this.baseXP = loaded.baseXP;
-            this.baseLevels = loaded.baseLevels;
+            this.shouldGiveLevels = (loaded.shouldGiveLevels != null) ? loaded.shouldGiveLevels : true;
+            this.baseXP = (loaded.baseXP != null) ? loaded.baseXP : 100;
+            this.baseLevels = (loaded.baseLevels != null) ? loaded.baseLevels : 1;
+            this.enableDailyCap = (loaded.enableDailyCap != null) ? loaded.enableDailyCap : false;
+            this.dailyXpCap = (loaded.dailyXpCap != null) ? loaded.dailyXpCap : 1000;
+            this.dailyLevelCap = (loaded.dailyLevelCap != null) ? loaded.dailyLevelCap : 5;
+            this.xpFromPlayerBattles = (loaded.xpFromPlayerBattles != null) ? loaded.xpFromPlayerBattles : true;
+
+            // Save back to file to add any new default options missing in the file
+            save();
 
         } catch (IOException e) {
             PlayerXp.LOGGER.error("Failed to load config: " + e.getMessage());
@@ -67,5 +73,17 @@ public class Config {
     }
     public boolean shouldGiveLevels() {
         return this.shouldGiveLevels;
+    }
+    public boolean isEnableDailyCap() {
+        return this.enableDailyCap;
+    }
+    public int getDailyXpCap() {
+        return this.dailyXpCap;
+    }
+    public int getDailyLevelCap() {
+        return this.dailyLevelCap;
+    }
+    public boolean shouldGiveXpFromTrainerBattles() {
+        return this.xpFromPlayerBattles;
     }
 }

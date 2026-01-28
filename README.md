@@ -60,6 +60,14 @@ You can find the config file at: `config/playerxp/playerxp.json`
 
 `baseLevels` - How many levels should be awarded to the player per pokemon level if `shouldGiveLevels` is set to true.
 
+`enableDailyCap` - true / false - whether to apply a daily xp or level cap?
+
+`dailyXpCap` - When `shouldGiveLevels` is set to false and the daily cap has been enabled, how much XP can a player earn?
+
+`dailyLevelCap` - When `shouldGiveLevels` is set to true and the daily cap has been enabled, how many levels can a player earn?
+
+`xpFromPlayerBattles` - Should trainer battles award XP, whether it be levels or xp orbs?
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- DEPENDENCIES -->
