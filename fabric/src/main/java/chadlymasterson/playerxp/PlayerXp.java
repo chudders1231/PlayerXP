@@ -46,6 +46,7 @@ public class PlayerXp implements ModInitializer {
 
     private void onServerTick(MinecraftServer minecraftServer) {
         ServerLevel level = minecraftServer.getLevel(ServerLevel.OVERWORLD);
+        if(!config.isEnableDailyCap()) return;
 
         if( days == Math.round(level.dayTime() == 0 ? 0 : ((float) level.dayTime() / 24000))) {
             return;
@@ -60,8 +61,6 @@ public class PlayerXp implements ModInitializer {
 
         });
 
-
-        LOGGER.info(String.format("It is now day: %s. The XP cap has been reset!", days));
 
     }
 
@@ -91,11 +90,6 @@ public class PlayerXp implements ModInitializer {
         AtomicInteger loserLevel = new AtomicInteger();
 
         for(BattleActor actor : losers) {
-            if(actor instanceof PokemonBattleActor battleActor) {
-                Pokemon pkmn = battleActor.getPokemon().getOriginalPokemon();
-
-                loserLevel.addAndGet(pkmn.getLevel());
-            }
 
             if(actor instanceof PlayerBattleActor battleActor) {
                 List<BattlePokemon> pkmn = battleActor.getPokemonList();
@@ -104,6 +98,7 @@ public class PlayerXp implements ModInitializer {
                     loserLevel.addAndGet(OG.getLevel());
                 });
             }
+
         }
 
         for(BattleActor actor: winners) {

@@ -102,8 +102,8 @@ public class PlayerXp {
     @SubscribeEvent
     public void onServerTick(ServerTickEvent.Pre event) {
         ServerLevel level = event.getServer().getLevel(ServerLevel.OVERWORLD);
+        if(!config.isEnableDailyCap()) return;
 
-        long dayTime = level.dayTime();
         if( days == Math.round(level.dayTime() == 0 ? 0 : ((float) level.dayTime() / 24000))) {
             return;
         }
@@ -116,8 +116,6 @@ public class PlayerXp {
             sendActionBar(player, "XP Cap has been reset!");
 
         });
-
-        LOGGER.info(String.format("It is now day: %s. The XP cap has been reset!", days));
     }
 
     private void handleXP(ServerPlayer player, int pokemonLevel) {
@@ -134,8 +132,6 @@ public class PlayerXp {
     }
 
     private void handleXPCap(ServerPlayer player, int pokemonLevel) {
-
-        LOGGER.info(String.format("ShouldGiveLevels: %s", config.shouldGiveLevels()));
 
         if(!config.shouldGiveLevels()) {
             int xp = config.getBaseXP() * pokemonLevel < 1 ? 1 : (int)Math.floor(config.getBaseXP() * pokemonLevel);
@@ -206,8 +202,6 @@ public class PlayerXp {
                 xpAwarded.put(player, awarded + levelsToGive);
 
             }
-
-            sendActionBar(player, String.format("Daily XP: %s / %s", xpAwarded.get(player), lvlCap));
 
         }
     }
