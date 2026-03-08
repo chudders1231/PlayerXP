@@ -71,19 +71,17 @@ public class PlayerXp {
         AtomicInteger loserLevel = new AtomicInteger();
 
         for(BattleActor actor : losers) {
-            if(actor instanceof PokemonBattleActor battleActor) {
-                Pokemon pkmn = battleActor.getPokemon().getOriginalPokemon();
 
-                loserLevel.addAndGet(pkmn.getLevel());
-            }
+            LOGGER.info(String.format("PokemonList: %s", actor.getPokemonList().toString()));
 
-            if(actor instanceof PlayerBattleActor battleActor) {
-                List<BattlePokemon> pkmn = battleActor.getPokemonList();
-                pkmn.forEach((i) -> {
-                    Pokemon OG = i.getOriginalPokemon();
-                    loserLevel.addAndGet(OG.getLevel());
-                });
-            }
+            List<BattlePokemon> pkmn = actor.getPokemonList();
+
+            pkmn.forEach( (i) -> {
+
+                loserLevel.getAndAdd(i.getOriginalPokemon().getLevel());
+
+            });
+
         }
 
         for(BattleActor actor: winners) {

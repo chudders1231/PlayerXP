@@ -9,7 +9,6 @@ import com.cobblemon.mod.common.api.reactive.ObservableSubscription;
 import com.cobblemon.mod.common.battles.actor.PlayerBattleActor;
 import com.cobblemon.mod.common.battles.actor.PokemonBattleActor;
 import com.cobblemon.mod.common.battles.pokemon.BattlePokemon;
-import com.cobblemon.mod.common.pokemon.Pokemon;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.core.BlockPos;
@@ -19,7 +18,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.ExperienceOrb;
-import org.apache.logging.log4j.core.jmx.Server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,9 +29,9 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class PlayerXp implements ModInitializer {
-    static String MOD_ID = "playerxp";
-    static Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
-    public static Config config;
+    public static String MOD_ID = "playerxp";
+    public static Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+    private static Config config;
     private int days = 0;
 
     private Map<ServerPlayer, Integer> xpAwarded = new HashMap<>();
@@ -91,13 +89,15 @@ public class PlayerXp implements ModInitializer {
 
         for(BattleActor actor : losers) {
 
-            if(actor instanceof PlayerBattleActor battleActor) {
-                List<BattlePokemon> pkmn = battleActor.getPokemonList();
-                pkmn.forEach((i) -> {
-                    Pokemon OG = i.getOriginalPokemon();
-                    loserLevel.addAndGet(OG.getLevel());
+            LOGGER.info(String.format("PokemonList: %s", actor.getPokemonList().toString()));
+
+            List<BattlePokemon> pkmn = actor.getPokemonList();
+
+                pkmn.forEach( (i) -> {
+
+                    loserLevel.getAndAdd(i.getOriginalPokemon().getLevel());
+
                 });
-            }
 
         }
 
