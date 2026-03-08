@@ -108,7 +108,7 @@ public class PlayerXp {
         days = Math.round(level.dayTime() == 0 ? 0 : ((float) level.dayTime() / 24000));
 
         xpAwarded.forEach((player, amount) -> {
-            // Your logic here, e.g., player.giveExperiencePoints(amount);
+
             xpAwarded.put(player, 0);
 
             sendActionBar(player, "XP Cap has been reset!");
