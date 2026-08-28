@@ -1,35 +1,41 @@
 package chadlymasterson.playerxp;
 
+import com.cobblemon.mod.common.CobblemonItems;
 import com.cobblemon.mod.common.api.Priority;
+import com.cobblemon.mod.common.api.battles.model.PokemonBattle;
 import com.cobblemon.mod.common.api.battles.model.actor.BattleActor;
 import com.cobblemon.mod.common.api.events.CobblemonEvents;
 import com.cobblemon.mod.common.api.events.battles.BattleVictoryEvent;
 import com.cobblemon.mod.common.api.events.pokemon.PokemonCapturedEvent;
 import com.cobblemon.mod.common.api.reactive.ObservableSubscription;
+import com.cobblemon.mod.common.battles.ActiveBattlePokemon;
 import com.cobblemon.mod.common.battles.actor.PlayerBattleActor;
-import com.cobblemon.mod.common.battles.actor.PokemonBattleActor;
 import com.cobblemon.mod.common.battles.pokemon.BattlePokemon;
-import com.cobblemon.mod.common.pokemon.Pokemon;
-import com.google.common.eventbus.Subscribe;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundSetActionBarTextPacket;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.ExperienceOrb;
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.bus.api.SubscribeEvent;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.server.ServerStartedEvent;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static chadlymasterson.playerxp.DataComponents.BOUND_PLAYERS;
 
 @Mod("playerxp")
 public class PlayerXp {
@@ -37,28 +43,17 @@ public class PlayerXp {
     public static final String MOD_ID = "playerxp";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-    private static Config config;
-    private int days = 0;
-
-    private Map<ServerPlayer, Integer> xpAwarded = new HashMap<>();
+    private static final Config CONFIG = new Config("playerxp.json");
 
     public PlayerXp() {
-        NeoForge.EVENT_BUS.register(this);
-    }
-
-    @SubscribeEvent
-    public void onServerStarted(ServerStartedEvent event) {
-        config = getConfig();
+        NeoForge.EVENT_BUS.addListener(this::onEntityCallback);
+        NeoForge.EVENT_BUS.addListener(this::onItemTooltipCallback);
     }
 
     ObservableSubscription<PokemonCapturedEvent> captureEvent = CobblemonEvents.POKEMON_CAPTURED.subscribe( Priority.LOW, event -> {
         ServerPlayer player = event.getPlayer();
 
-        if(!config.isEnableDailyCap()) {
-            handleXP(player, event.getPokemon().getLevel());
-        } else {
-            handleXPCap(player, event.getPokemon().getLevel());
-        }
+        handleXP(player, event.getPokemon().getLevel());
 
     });
 
@@ -69,6 +64,8 @@ public class PlayerXp {
         var losers = event.getLosers();
 
         AtomicInteger loserLevel = new AtomicInteger();
+
+        var isTrainer = isTrainerBattle(event.getBattle());
 
         for(BattleActor actor : losers) {
 
@@ -85,11 +82,16 @@ public class PlayerXp {
         }
 
         for(BattleActor actor: winners) {
-            if(actor instanceof PlayerBattleActor player && config.shouldGiveXpFromTrainerBattles()) {
-                if(!config.isEnableDailyCap()) {
+            if(actor instanceof PlayerBattleActor player) {
+
+                List<ActiveBattlePokemon> activePokemon = player.getActivePokemon();
+
+                var shouldGiveXP = isTrainer && CONFIG.shouldGiveXpFromTrainerBattles();
+
+                if( !isTrainer ) shouldGiveXP = true;
+
+                if(shouldGiveXP) {
                     handleXP(player.getEntity(), loserLevel.get());
-                } else {
-                    handleXPCap(player.getEntity(), loserLevel.get());
                 }
             }
         }
@@ -97,115 +99,87 @@ public class PlayerXp {
         return null;
     });
 
-    @SubscribeEvent
-    public void onServerTick(ServerTickEvent.Pre event) {
-        ServerLevel level = event.getServer().getLevel(ServerLevel.OVERWORLD);
-        if(!config.isEnableDailyCap()) return;
-
-        if( days == Math.round(level.dayTime() == 0 ? 0 : ((float) level.dayTime() / 24000))) {
-            return;
-        }
-        days = Math.round(level.dayTime() == 0 ? 0 : ((float) level.dayTime() / 24000));
-
-        xpAwarded.forEach((player, amount) -> {
-
-            xpAwarded.put(player, 0);
-
-            sendActionBar(player, "XP Cap has been reset!");
-
-        });
+    private boolean isTrainerBattle(PokemonBattle battle) {
+        return battle.isPvP() || battle.isPvN();
     }
 
     private void handleXP(ServerPlayer player, int pokemonLevel) {
 
-        if (!config.shouldGiveLevels()) {
-            int xp = config.getBaseXP() * pokemonLevel < 1 ? 1 : (int)Math.floor(config.getBaseXP() * pokemonLevel);
-            spawnXPOrbs(player, xp);
+        if (!CONFIG.shouldGiveLevels()) {
+            int xp = CONFIG.getBaseXP() * pokemonLevel < 1 ? 1 : (int)Math.floor(CONFIG.getBaseXP() * pokemonLevel);
+            if ( CONFIG.shouldLuckyXpBoost() && hasEggInInv(player) ) {
+                xp *= CONFIG.getLuckyEggXpMultiplier();
+            }
+
+            if(CONFIG.getShouldExpShare() && hasExpShareInInv(player)) {
+                Item share = BuiltInRegistries.ITEM.get(ResourceLocation.fromNamespaceAndPath("cobblemon","exp_share"));
+                List<ServerPlayer> players = new ArrayList<>();
+
+                player.getInventory().items.stream().filter( stack -> !stack.isEmpty() && stack.getItem() == share).forEach(stack -> {
+                    List<DataComponents.PlayerEntry> entry = stack.get(BOUND_PLAYERS);
+                    if( entry != null && !entry.isEmpty()) {
+                        for (DataComponents.PlayerEntry p : entry) {
+                            ServerPlayer sP = player.getServer().getPlayerList().getPlayer(p.uuid());
+                            if ( sP != null && player.distanceTo(sP) <= CONFIG.getExpShareRadius()){
+                                players.add(sP);
+                            }
+                        }
+                    }
+                });
+
+                players.add(player);
+                for (ServerPlayer serverPlayer : players) {
+                    spawnXPOrbs( serverPlayer, xp / players.size());
+                }
+            } else {
+                spawnXPOrbs(player, xp);
+            }
         } else {
 
             int xpToGive = handleLevelReward(player, pokemonLevel);
+            if ( CONFIG.shouldLuckyXpBoost() && hasEggInInv(player) ) {
+                xpToGive *= CONFIG.getLuckyEggXpMultiplier();
+            }
 
-            spawnXPOrbs(player, xpToGive);
+            if(CONFIG.getShouldExpShare() && hasExpShareInInv(player)) {
+                Item share = BuiltInRegistries.ITEM.get(ResourceLocation.fromNamespaceAndPath("cobblemon","exp_share"));
+
+                Set<ServerPlayer> players = new HashSet<>();
+
+                player.getInventory().items.stream()
+                        .filter( stack -> !stack.isEmpty() && stack.getItem() == share)
+                        .forEach(stack -> {
+                            List<DataComponents.PlayerEntry> entry = stack.get(BOUND_PLAYERS);
+
+                            if( entry != null && !entry.isEmpty()) {
+                                for (DataComponents.PlayerEntry p : entry) {
+                                    ServerPlayer sP = player.getServer().getPlayerList().getPlayer(p.uuid());
+                                    if ( sP != null && player.distanceTo(sP) <= CONFIG.getExpShareRadius()){
+                                        players.add(sP);
+                                    }
+                                }
+                            }
+                        });
+
+                players.add(player);
+                for (ServerPlayer serverPlayer : players) {
+                    spawnXPOrbs( serverPlayer, xpToGive / players.size());
+                }
+            } else {
+                spawnXPOrbs(player, xpToGive);
+            }
         }
     }
 
-    private void handleXPCap(ServerPlayer player, int pokemonLevel) {
+    public boolean hasExpShareInInv( ServerPlayer player ) {
 
-        if(!config.shouldGiveLevels()) {
-            int xp = config.getBaseXP() * pokemonLevel < 1 ? 1 : (int)Math.floor(config.getBaseXP() * pokemonLevel);
-            Integer xpCap = config.getDailyXpCap();
-            Integer awarded = xpAwarded.get(player);
+        Item share = BuiltInRegistries.ITEM.get(ResourceLocation.fromNamespaceAndPath("cobblemon","exp_share"));
 
-            if(awarded == null) {
-
-                int diff = config.getDailyXpCap() - xp;
-                int xpVal = xp;
-                if(diff < 0) {
-                    xpVal = (awarded + xp) + diff;
-                }
-
-                awarded = xpVal;
-                xpAwarded.put(player, awarded);
-                spawnXPOrbs(player, awarded);
-            } else {
-                if( awarded + xp > config.getDailyXpCap()) {
-                    if(awarded >= config.getDailyXpCap()) {
-                        sendActionBar(player, String.format("Daily XP maxed!"));
-                        return;
-                    }
-                    int diff = config.getDailyXpCap() - (awarded + xp);
-                    int xpVal = xp;
-                    if(diff < 0) {
-                        xpVal = (awarded + xp) + diff;
-                    }
-
-                    awarded += diff;
-                    xpAwarded.put(player, awarded);
-                    spawnXPOrbs(player, xp);
-                } else {
-                    awarded += xp;
-                    xpAwarded.put(player, awarded + xp);
-                    spawnXPOrbs(player, xp);
-                }
-            }
-
-            sendActionBar(player, String.format("Daily XP: %s / %s", awarded, xpCap));
-        } else {
-
-            Integer lvlCap = config.getDailyLevelCap();
-            Integer awarded = xpAwarded.get(player);
-            Integer levelsToGive = 0;
-
-            if (awarded == null) awarded = 0;
-
-            if (awarded >= lvlCap) {
-                sendActionBar(player, String.format("Daily XP maxed!"));
-                return;
-            }
-
-            if(((pokemonLevel * config.getBaseLevels()) + awarded) > lvlCap) {
-                levelsToGive = lvlCap - awarded;
-
-                // Give levelsToGive;
-                spawnXPOrbs(player, handleLevelReward(player, levelsToGive));
-
-                xpAwarded.put(player, lvlCap);
-
-            } else {
-                levelsToGive = Math.min(pokemonLevel * config.getBaseLevels(), lvlCap - awarded);
-
-                // Give levelsToGive;
-                spawnXPOrbs(player, handleLevelReward(player, levelsToGive));
-
-                xpAwarded.put(player, awarded + levelsToGive);
-
-            }
-
-        }
+        return player.getInventory().items.stream().anyMatch(stack -> !stack.isEmpty() && stack.getItem() == share);
     }
 
     public int handleLevelReward(ServerPlayer player, int pokemonLevel) {
-        var levelsToGive = config.getBaseLevels() * pokemonLevel;
+        var levelsToGive = CONFIG.getBaseLevels() * pokemonLevel;
 
         int currentLevel = player.experienceLevel;
         int targetLevel = currentLevel + levelsToGive;
@@ -233,19 +207,89 @@ public class PlayerXp {
         level.addFreshEntity(orb);
     }
 
-    public static Config getConfig() {
-        if (config == null) {
-            config = new Config("playerxp.json");
-            config.load();
+    public boolean hasEggInInv( ServerPlayer player ) {
+
+        Item egg = BuiltInRegistries.ITEM.get(ResourceLocation.fromNamespaceAndPath("cobblemon","lucky_egg"));
+
+        return player.getInventory().items.stream().anyMatch(stack -> !stack.isEmpty() && stack.getItem() == egg);
+    }
+
+    private void onItemTooltipCallback(ItemTooltipEvent event) {
+        ItemStack stack = event.getItemStack();
+        List<Component> components = event.getToolTip();
+
+        if( stack.is(CobblemonItems.EXP_SHARE) && CONFIG.getShouldExpShare()) {
+            List<DataComponents.PlayerEntry> list = stack.get(BOUND_PLAYERS);
+            if(list == null || list.isEmpty()) {
+                components.add(Component.literal(""));
+                components.add(Component.literal("No players bound"));
+                components.add(Component.literal(""));
+                components.add(Component.literal(String.format("Shares Exp with bound players within %s blocks", CONFIG.getExpShareRadius())).withStyle(ChatFormatting.GRAY));
+            } else {
+                components.add(Component.literal(String.format("Bound players (%s / %s): ", list.size(), CONFIG.getExpShareSize())).withStyle(ChatFormatting.GOLD));
+
+                Minecraft mc = Minecraft.getInstance();
+                if (mc.getConnection() == null) return;
+
+                for(DataComponents.PlayerEntry entry : list) {
+                    String name = entry.name();
+
+                    components.add(Component.literal(name));
+                }
+                components.add(Component.literal(""));
+                components.add(Component.literal(String.format("Shares Exp with bound players within %s blocks", CONFIG.getExpShareRadius())).withStyle(ChatFormatting.GRAY));
+            }
+        };
+    }
+
+    public static void removePlayer(ItemStack stack, UUID uuid) {
+        List<DataComponents.PlayerEntry> old = stack.getOrDefault(BOUND_PLAYERS, DataComponents.PlayerEntry.EMPTY);
+
+        ArrayList<DataComponents.PlayerEntry> updated = new ArrayList<>(old);
+
+        updated.removeIf(entry -> entry.uuid().equals(uuid));
+
+        stack.set(BOUND_PLAYERS, updated);
+    }
+
+    public static void addPlayer(ItemStack stack, UUID uuid, String name) {
+        List<DataComponents.PlayerEntry> old = stack.getOrDefault(BOUND_PLAYERS, DataComponents.PlayerEntry.EMPTY);
+
+        ArrayList<DataComponents.PlayerEntry> updated = new ArrayList<>(old);
+
+        // optional: prevent duplicates
+        for (DataComponents.PlayerEntry entry : updated) {
+            if (entry.uuid().equals(uuid)) {
+                removePlayer(stack, uuid);
+
+                return;
+            }
         }
 
-        return config;
+        // optional: enforce max 4
+        if (updated.size() >= CONFIG.getExpShareSize()) return;
+
+        updated.add(new DataComponents.PlayerEntry(uuid, name));
+
+        stack.set(BOUND_PLAYERS, updated);
     }
 
-    public void sendActionBar(ServerPlayer player, String message) {
-        Component text = Component.literal(message);
-        ClientboundSetActionBarTextPacket packet = new ClientboundSetActionBarTextPacket(text);
-        player.connection.send(packet);
+    private void onEntityCallback(PlayerInteractEvent.EntityInteract event) {
+
+        Player player = event.getEntity();
+        Entity target = event.getTarget();
+
+        if (target instanceof Player targetPlayer) {
+            // item used on another player
+            ItemStack stack = player.getItemInHand(event.getHand());
+
+            if(stack.is(CobblemonItems.EXP_SHARE)) {
+                List<DataComponents.PlayerEntry> list = stack.get(BOUND_PLAYERS);
+
+                addPlayer(stack, targetPlayer.getUUID(), targetPlayer.getDisplayName().getString());
+            }
+        }
     }
+
 
 }

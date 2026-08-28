@@ -1,7 +1,7 @@
 plugins {
     id("dev.architectury.loom")
     id("architectury-plugin")
-    id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("com.gradleup.shadow") version "9.3.1"
 }
 
 architectury {
@@ -15,6 +15,10 @@ loom {
 
     mixin {
         defaultRefmapName.set("mixins.${project.name}.refmap.json")
+    }
+
+    runs {
+
     }
 }
 val shadowCommon = configurations.create("shadowCommon")

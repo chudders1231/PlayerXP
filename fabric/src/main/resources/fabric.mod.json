@@ -7,6 +7,9 @@
   "authors": [
     "chadlymasterson"
   ],
+  "mixins": [
+    "mixins.json"
+  ],
   "license": "MIT License",
   "icon": "assets/playerxp/icon.png",
   "environment": "*",
@@ -19,4 +22,5 @@
     "minecraft": "1.21.1",
     "cobblemon": ">=1.6.0"
   }
+
 }

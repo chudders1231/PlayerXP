@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "cobblemon:exp_share"
+    }
+  ],
+  "result": {
+    "id": "cobblemon:exp_share"
+  }
+}
